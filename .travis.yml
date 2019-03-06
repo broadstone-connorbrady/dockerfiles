@@ -1,0 +1,33 @@
+---
+sudo: required
+notifications:
+  email: true
+services:
+  - docker
+
+env:
+  matrix:
+    - DOCKERFILE="laravel-phpunit-pcov"
+
+  global:
+      - REGISTRY_USER=luuukas
+
+before_script:
+  - docker pull "${REGISTRY_USER}/${DOCKERFILE}" || true
+
+script:
+  - docker build --pull --cache-from "${REGISTRY_USER}/${DOCKERFILE}" --tag "${REGISTRY_USER}/${DOCKERFILE}" $DOCKERFILE
+
+after_script:
+  - docker images
+
+before_deploy:
+  - docker login -u "$REGISTRY_USER" -p "$REGISTRY_PASS"
+  - docker tag "${REGISTRY_USER}/${DOCKERFILE}" "${REGISTRY_USER}/${DOCKERFILE}:latest"
+
+deploy:
+  provider: script
+  script:
+    docker push "$REGISTRY_USER/$DOCKERFILE:latest"
+  on:
+    branch: master
